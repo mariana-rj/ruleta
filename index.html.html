@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta del Sorteo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #FFFFFF;
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+        }
+        h1 {
+            color: #424242;
+            font-size: 3em;
+            font-family: 'Fredoka One', cursive;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: row;
+        }
+        #ruleta-container {
+            position: relative;
+            width: 320px;
+            margin-right: 50px; /* Espacio entre la ruleta y los formularios */
+        }
+        #ruleta {
+            width: 300px;
+            height: 300px;
+            border: 10px solid #424242;
+            border-radius: 50%;
+            margin: 20px auto;
+            position: relative;
+            transition: transform 4s ease-out;
+            overflow: hidden;
+        }
+        #indicador {
+            position: absolute;
+            top: 0px; /* Para asegurar que esté completamente fuera de la ruleta */
+            left: 50%;
+            transform: translateX(-50%) rotate(180deg);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 40px solid #FF4F60;
+            z-index: 20;
+        }
+        #girar {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #FF5A9A;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 10px;
+            font-family: 'Fredoka One', cursive;
+        }
+        #resultado {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        .opcion {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            border-right: 4px solid #424242;
+            border-bottom: 4px solid #424242;
+        }
+        .opcion:nth-child(1) { background-color: #FF5A9A; transform: rotate(0deg); }
+        .opcion:nth-child(2) { background-color: #C7A9FE; transform: rotate(60deg); }
+        .opcion:nth-child(3) { background-color: #9EEFE5; transform: rotate(120deg); }
+        .opcion:nth-child(4) { background-color: #68E0F5; transform: rotate(180deg); }
+        .opcion:nth-child(5) { background-color: #FFCE1F; transform: rotate(240deg); }
+        .opcion:nth-child(6) { background-color: #FED5E2; transform: rotate(300deg); }
+
+        /* Círculo decorativo en el centro */
+        #ruleta::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border: 5px solid #424242;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+        /* Estilo del formulario */
+        #datosForm {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #datosForm input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 90%;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Descubre tu Suerte</h1>
+
+    <!-- Contenedor que agrupa la ruleta y los formularios -->
+    <div id="container">
+        <!-- Ruleta -->
+        <div id="ruleta-container">
+            <div id="indicador"></div> <!-- Indicador ajustado -->
+            <div id="ruleta">
+                <div class="opcion"></div> <!-- Color sin texto -->
+                <div class="opcion"></div> <!-- Color sin texto -->
+                <div class="opcion"></div> <!-- Color sin texto -->
+                <div class="opcion"></div> <!-- Color sin texto -->
+                <div class="opcion"></div> <!-- Color sin texto -->
+                <div class="opcion"></div> <!-- Color sin texto -->
+            </div>
+        </div>
+
+        <!-- Formulario para nombre y teléfono y botón girar -->
+        <div>
+            <form id="datosForm">
+                <input type="text" id="nombre" placeholder="Nombre y apellido" required>
+                <input type="tel" id="telefono" placeholder="Celular" required>
+                <button type="submit" id="girar">Girar Ruleta</button>
+            </form>
+        </div>
+    </div>
+
+    <p id="resultado"></p>
+
+    <script>
+        const ruleta = document.getElementById('ruleta');
+        const resultado = document.getElementById('resultado');
+        const girarBtn = document.getElementById('girar');
+        const nombreInput = document.getElementById('nombre');
+        const telefonoInput = document.getElementById('telefono');
+        let puedeGirar = true;
+
+        const premios = ["5 soles", "3 soles", "5 soles", "3 soles", "5 soles", "Gratis"];
+        const colores = ["#FFCE1F", "#FF5A9A", "#C7A9FE", "#9EEFE5", "#68E0F5", "#FED5E2"];
+
+        // Cargar resultados anteriores
+        if (localStorage.getItem('resultado')) {
+            resultado.innerText = localStorage.getItem('resultado');
+        }
+
+        girarBtn.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevenir el envío del formulario
+            if (!puedeGirar) {
+                alert("¡Ya has girado la ruleta!");
+                return;
+            }
+
+            // Verificar si se ingresaron nombre y teléfono
+            const nombre = nombreInput.value.trim();
+            const telefono = telefonoInput.value.trim();
+            if (!nombre || !telefono) {
+                alert("Por favor, ingresa tu nombre y teléfono.");
+                return;
+            }
+
+            // Girar la ruleta
+            const angulo = Math.floor(Math.random() * 360) + 720;
+            ruleta.style.transform = `rotate(${angulo}deg)`;
+
+            setTimeout(function() {
+                // Corregido: cálculo del premio según la rotación
+                const anguloFinal = angulo % 360;
+                const premioIndex = Math.floor(anguloFinal / (360 / premios.length));
+                const premioSeleccionado = premios[premioIndex];
+
+                const mensaje = `¡Felicidades ${nombre}! ¡Tu ticket vale ${premioSeleccionado}!`;
+                resultado.textContent = mensaje;
+                puedeGirar = false;
+
+                // Almacenar el resultado en el almacenamiento local
+                localStorage.setItem('resultado', mensaje);
+            }, 4000); // Espera hasta que la animación termine (4 segundos)
+        });
+    </script>
+</body>
+</html>
